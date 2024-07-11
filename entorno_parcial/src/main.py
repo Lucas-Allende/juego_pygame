@@ -5,27 +5,32 @@ from funciones import *
 from random import randint
 from kraken import *
 
+
 # Inicializa los módulos
 pygame.init()
 clock = pygame.time.Clock()
 
 # Configuración
-SCREEN = pygame.display.set_mode(SCREEN_SIZE)
 pygame.display.set_caption("Piratas")
+SCREEN = pygame.display.set_mode(SCREEN_SIZE)
 
 # Cargo imágenes
-background = pygame.transform.scale(pygame.image.load("./entorno_parcial/src/assets/mar.jpg"), SCREEN_SIZE)
-background_inicio = pygame.transform.scale(pygame.image.load("./entorno_parcial/src/assets/fondo_inicio.png"), SCREEN_SIZE)
-imagen_barco = pygame.image.load("./entorno_parcial/src/assets/barco.png")
-imagen_kraken = pygame.image.load("./entorno_parcial/src/assets/kraken.png")
-imagen_tesoro = pygame.image.load("./entorno_parcial/src/assets/tesoro.png")
-imagen_disparo = pygame.image.load("./entorno_parcial/src/assets/disparo.png")
-imagen_vidas3 = pygame.image.load("./entorno_parcial/src/assets/vidas3.png")
-imagen_vidas2 = pygame.image.load("./entorno_parcial/src/assets/vidas2.png")
-imagen_vidas1 = pygame.image.load("./entorno_parcial/src/assets/vidas1.png")
-start_button = pygame.transform.scale(pygame.image.load("./entorno_parcial/src/assets/start.png"), INITIALS_BUTTONS_SIZE)
-records_button = pygame.transform.scale(pygame.image.load("./entorno_parcial/src/assets/records.png"), INITIALS_BUTTONS_SIZE)
-quit_button = pygame.transform.scale(pygame.image.load("./entorno_parcial/src/assets/quit.png"), INITIALS_BUTTONS_SIZE)
+
+background = cargar_imagen("./entorno_parcial/src/assets/mar.jpg", SCREEN_SIZE)
+background_inicio = cargar_imagen("./entorno_parcial/src/assets/fondo_inicio.png", SCREEN_SIZE)
+imagen_barco = cargar_imagen("./entorno_parcial/src/assets/barco.png")
+imagen_kraken = cargar_imagen("./entorno_parcial/src/assets/kraken.png")
+imagen_tesoro = cargar_imagen("./entorno_parcial/src/assets/tesoro.png")
+imagen_disparo = cargar_imagen("./entorno_parcial/src/assets/disparo.png")
+imagen_vidas3 = cargar_imagen("./entorno_parcial/src/assets/vidas3.png")
+imagen_vidas2 = cargar_imagen("./entorno_parcial/src/assets/vidas2.png")
+imagen_vidas1 = cargar_imagen("./entorno_parcial/src/assets/vidas1.png")
+start_button = cargar_imagen("./entorno_parcial/src/assets/start.png", INITIALS_BUTTONS_SIZE)
+records_button = cargar_imagen("./entorno_parcial/src/assets/records.png", INITIALS_BUTTONS_SIZE)
+quit_button = cargar_imagen("./entorno_parcial/src/assets/quit.png", INITIALS_BUTTONS_SIZE)
+
+
+
 rect_start_button = start_button.get_rect(center=START_BUTTON_POS)
 rect_records_button = records_button.get_rect(center=RECORDS_BUTTON_POS)
 rect_quit_button = quit_button.get_rect(center=QUIT_BUTTON_POS)
@@ -39,8 +44,11 @@ game_over_sound = pygame.mixer.Sound("./entorno_parcial/src/assets/game_over.mp3
 tesoro_sound = pygame.mixer.Sound("./entorno_parcial/src/assets/tesoro.mp3")
 disparo_sound = pygame.mixer.Sound("./entorno_parcial/src/assets/canon.mp3")
 
+
+
 # Cargo fuente
 fuente = pygame.font.SysFont(None, 32)
+
 
 # Eventos personalizados
 GAMETIMEOUT = USEREVENT + 1
@@ -52,6 +60,12 @@ max_score = 0
 player_w = 50
 player_h = 50
 
+
+archivo_csv = cargar_csv("best_scores.csv")
+
+best_scores = archivo_csv
+
+
 continuar = True
 while continuar:
     SCREEN.blit(background_inicio, ORIGIN)
@@ -60,9 +74,9 @@ while continuar:
     SCREEN.blit(quit_button, rect_quit_button)
     pygame.display.flip()
 
-    wait_user_click(rect_start_button, rect_quit_button)
+    wait_user_click(rect_start_button, rect_records_button, rect_quit_button, best_scores, SCREEN, fuente, tesoro_sound, disparo_sound)
 
-    pygame.time.set_timer(GAMETIMEOUT, 60000)
+    pygame.time.set_timer(GAMETIMEOUT, 120000)
     pygame.time.set_timer(NEWKRAKEN, 10000)
     pygame.time.set_timer(NEWFIRES, 5000)
 
@@ -83,6 +97,8 @@ while continuar:
     playing_music = True
     score = 0
     lives = 3
+
+
     # Configuro el movimiento del jugador
     move_left = False
     move_right = False
@@ -91,6 +107,9 @@ while continuar:
 
     # Inicializa las variables de movimiento
     move_left = move_right = move_up = move_down = False
+    #reinicio la velocidad
+    SPEED_PLAYER = reiniciar_speed(SPEED_PLAYER)
+    
 
     # Juego principal
     is_running = True
@@ -146,6 +165,7 @@ while continuar:
                 krakens.append(nuevo_kraken) 
             if event.type == NEWFIRES:
                 disparo_sound.play()
+                disparo_sound.set_volume(0.5)
                 load_fire_list(disparos, INITIAL_QUANTITY_FIRES, imagen_disparo)
                 
 
@@ -182,6 +202,7 @@ while continuar:
         for tesoro in tesoros.copy():
             if colision_circulos(tesoro["rect"], player["rect"]):
                 tesoro_sound.play()
+                tesoro_sound.set_volume(0.2)
                 tesoros.remove(tesoro)
                 score += 1
                 SPEED_PLAYER += 0.1
@@ -234,8 +255,13 @@ while continuar:
         pygame.display.flip()
 
     # Pantalla game over
+
+
     if score > max_score:
         max_score = score
+
+    actualizar_top_scores(score, best_scores)
+
     pygame.mixer.music.stop()
     game_over_sound.play()
     SCREEN.fill(BLACK)
@@ -243,4 +269,14 @@ while continuar:
     mostrar_texto(SCREEN, f"max score: {max_score}", fuente, MAX_SCORE_POS, BLACK, WHITE)
     mostrar_texto(SCREEN, "GAME OVER", fuente, SCREEN_CENTER, WHITE)
     mostrar_texto(SCREEN, "Presione space para cerrar", fuente, MESSAGE_START_POS, WHITE)
+
+
     wait_user(K_SPACE)
+
+    pygame.display.flip()
+
+    guardar_best_scores(best_scores)
+
+
+
+

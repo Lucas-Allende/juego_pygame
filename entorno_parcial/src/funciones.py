@@ -67,7 +67,7 @@ def wait_user(tecla: int):
                 if event.key == tecla:
                     continuar = False
 
-def wait_user_click(button_rect1: pygame.Rect, button_rect2: pygame.Rect):
+def wait_user_click(button_rect1: pygame.Rect, button_rect2: pygame.Rect, button_rect3: pygame.Rect, best_scores, pantalla, fuente, sonido_tesoro: pygame.mixer_music, sonido_disparo: pygame.mixer_music):
     """
     Espera hasta que el usuario haga clic en uno de los rectángulos especificados.
 
@@ -85,7 +85,10 @@ def wait_user_click(button_rect1: pygame.Rect, button_rect2: pygame.Rect):
                     if punto_en_rectangulo(event.pos, button_rect1):
                         continuar = False
                     if punto_en_rectangulo(event.pos, button_rect2):
+                      mostrar_best_scores(best_scores, pantalla, fuente, WHITE, BLACK)
+                    if punto_en_rectangulo(event.pos, button_rect3):
                         salir_juego()
+
 
 def crear_treasure(imagen=None):
     """
@@ -182,3 +185,66 @@ def colision_circulos(rect_1, rect_2):
     r2 = rect_2.width // 2
     distancia = distancia_entre_puntos(rect_1.center, rect_2.center)
     return distancia <= r1 + r2
+
+def reiniciar_speed(velocidad: int):
+    """si la velocidad del player es mayor a 10 esta funcion la reiniciara
+
+    Args:
+        velocidad (int): velocidad de movimiento del jugador
+
+    Returns:
+        _type_: retorna la velocidad reiniciada
+    """
+    if velocidad > 10:
+        velocidad = 10
+
+    return velocidad
+
+
+def actualizar_top_scores(new_score, lista):
+
+    lista_aux = lista[:]
+    lista_aux.append({'posicion': 'nuevo', 'puntaje': new_score})
+
+    lista_aux.sort(key=lambda x: x['puntaje'], reverse=True)
+
+    top_10 = lista_aux[:10]
+
+    for i, item in enumerate(top_10):
+        item['posicion'] = f'Top{i + 1}'
+
+    lista[:] = top_10
+
+def mostrar_best_scores(best_scores, screen, fuente, color_texto, color_fondo):
+    mover_y = 0
+    for score in best_scores:
+        texto = f"{score['posicion']}: {score['puntaje']}"
+        mostrar_texto(screen, texto, fuente, (200, 100 + mover_y), color_texto, color_fondo)
+        mover_y += 50
+
+def cargar_imagen(ruta, escala=None):
+    try:
+        imagen = pygame.image.load(ruta)
+        if escala:
+            imagen = pygame.transform.scale(imagen, escala)
+        print(f"Imagen cargada correctamente: {ruta}")
+        return imagen
+    except FileNotFoundError as e:
+        print(f"Archivo no encontrado: {ruta}. Error: {e}")
+    except pygame.error as e:
+        print(f"Ocurrió un error al cargar la imagen {ruta}: {e}")
+    except Exception as e:
+        print(f"Ocurrió un error inesperado al cargar la imagen {ruta}: {e}")
+
+
+def guardar_best_scores(best_scores):
+    with open(get_path_actual("best_scores.csv"), "w", encoding="utf-8") as archivo:
+        encabezado = ",".join(list(best_scores[0].keys())) + "\n"
+        archivo.write(encabezado)
+        for score in best_scores:
+            values = list(score.values())
+            linea = ",".join(str(value) for value in values) + "\n"
+            archivo.write(linea)
+
+
+
